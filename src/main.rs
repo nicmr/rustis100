@@ -1,5 +1,8 @@
-use std::fmt::{self, Display};
-use std::error;
+mod token_error;
+mod tis100;
+
+use token_error::{TokenError};
+
 
 fn main() {
     let sequence = "14+21";
@@ -30,41 +33,6 @@ enum Token {
 //     Any,
 //     Nil,
 // }
-
-
-
-#[derive(Debug)]
-struct TokenError {
-    kind: TokenErrorKind,
-    message: String,
-}
-
-impl TokenError {
-    fn new<S: std::string::ToString>(message: S) -> Self{
-        TokenError {
-            message: message.to_string(),
-            kind: TokenErrorKind::ParseError,
-        }
-    }
-}
-
-impl Display for TokenError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
-
-impl error::Error for TokenError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        None
-    }
-}
-
-#[derive(Debug)]
-enum TokenErrorKind {
-    // None,
-    ParseError,
-}
 
 
 // Problem:
