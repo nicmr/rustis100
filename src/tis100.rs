@@ -4,7 +4,7 @@ use crate::token_error::{TokenError};
 #[derive(Copy, Clone, Debug)]
 enum Token {
     Number(u32),
-    NodeID,
+    NodeID(u32),
     Add,
     Mov,
     EOF,
@@ -19,12 +19,18 @@ pub struct TisInterpreter {
     nodes: Vec<TisNode>,
 }
 
-
 struct TisNode {
     pub acc: u32,
     pub bak: u32,
+    pub ip: usize, //the instruction pointer / program counter
+
+    pub code: Vec<Box<TisInstruction>>,
     // ports
     // storage for last pseudoport
+}
+
+impl Clone for TisNode {
+    fn clone(&self) -> Self {*self}
 }
 
 impl TisNode {
@@ -32,9 +38,38 @@ impl TisNode {
         TisNode{
             acc: 0,
             bak: 0,
+            ip: 0,
+            code: Vec::new(),
         }
     }
+    pub fn tick(&mut self) {
+
+    }
 }
+
+impl std::fmt::Debug for TisNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        f.debug_struct("TisNode")
+            .field("acc", &self.acc)
+            .field("bak", &self.bak)
+            .field("ip", &self.ip)
+            .field("bak", &self.bak)
+            .finish()
+    }
+}
+
+type TisInstruction = Fn(&mut TisNode, Vec::<u32>);
+
+// TisInstruction
+fn add(node: &mut TisNode, operands: Vec::<u32>) {
+    node.acc = node.acc + operands[1];
+}
+
+// TisInstruction
+fn mov(node: &mut TisNode, operands: Vec::<u32>) {
+    // do fancy stuff
+}
+
 
 
 
@@ -50,7 +85,7 @@ impl TisNode {
 
 
 
-pub fn sampleCode() -> String {
+pub fn sample_code() -> String {
     String::from("@0ADD 1")
 }
 
@@ -64,6 +99,8 @@ impl TisInterpreter {
         }
     }
 
+    // should be reworked to return result instead, with a new error type, where
+    // each error kind represents a single problem encountered while parsing the token 
     fn get_next_token(&mut self) -> Option<Token> {
         use std::iter::FromIterator;
 
@@ -74,9 +111,19 @@ impl TisInterpreter {
 
         let current_char = self.text[self.pos];
         // println!("first char is: {}", current_char);
-        
 
-        if current_char.is_digit(10) {
+
+        if current_char == '@' {
+            if self.pos + 1 < self.text.len() && self.text[self.pos + 1].is_digit(10) {
+                let id = self.text[self.pos + 1];
+                self.pos += 2;
+                // we only arrive at this point when id.is_digit(10) was successful, so to_digit(10) will always unwrap successfully
+                Some(Token::NodeID(id.to_digit(10).unwrap()))
+            } else {
+                None
+            }
+        }
+        else if current_char.is_digit(10) {
             
             let mut length = 1;
             while self.pos + length < self.text.len() && self.text[self.pos + length].is_digit(10) {
@@ -105,21 +152,33 @@ impl TisInterpreter {
     // Parses a single expression in the language.
     // Expressions in the TIS-100 language are written in Polish notation
     pub fn expr(&mut self) -> Result<u32, TokenError> {
-        self.nodes.push(TisNode::new());
-        let mut operator: Box<Fn(&mut TisNode, Vec::<u32>)>;
+        self.nodes = vec![TisNode::new(); 12];
+
+        let current_node: &mut TisNode;
+        let mut operator: Box<TisInstruction>;
         let mut operands = Vec::new();
 
+        // 1. A node declaration is required
+        if let Some(token) = self.get_next_token() {
+            match token   {
+                // TODO: currently supports only nodes 0 through 9
+                Token::NodeID(x) => { current_node = &mut self.nodes[x as usize]; },
+                _ => { return Err(TokenError::new("Unexpected token: Expected Node declaration")); }
+            }
+        } else {
+            return Err(TokenError::new("Node declaration expected"));
+        }
 
-        // In polish notation, operators come first, so our 1st token has to be the operator
-        // Or a node identifier
+        // 2. An operator is requiired,
+        // (In polish notation, operators come first, so our 2nd token has to be the operator)
         if let Some(token) = self.get_next_token() {
             match token {
-                Token::Add => {operator = Box::new(add);}
-                Token::Mov => {operator = Box::new(mov);}
+                Token::Add => {current_node.code.push(Box::new(add))}
+                Token::Mov => {current_node.code.push(Box::new(mov))}
                 _ => { return Err(TokenError::new("Unexpected Token")) }
             }
         } else {
-            return Err(TokenError::new("Unable to get any tokens from text"))
+            return Err(TokenError::new("Unable to get any tokens from text"));
         }
 
 
@@ -144,11 +203,3 @@ impl TisInterpreter {
     }
 }
 
-
-fn add(node: &mut TisNode, operands: Vec::<u32>) {
-    node.acc = node.acc + operands[1];
-}
-
-fn mov(node: &mut TisNode, operands: Vec::<u32>) {
-    // do fancy stuff
-}
