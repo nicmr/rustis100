@@ -1,7 +1,7 @@
-mod token_error;
+mod errors;
 // mod tis100;
 
-use token_error::{TokenError};
+use errors::{InterpretError};
 
 
 fn main() {
@@ -15,7 +15,7 @@ fn main() {
 
     match expr_pure(sequence.chars().collect(), 0) {
         Ok(result) => println!("result is {}", result),
-        Err(e) => println!("Failed with Err {}", e),
+        Err(e) => println!("Failed with: {}", e),
     }
 
 
@@ -58,7 +58,7 @@ enum Token {
 
 // purely functional approach
 // takes Vec<char> instead of String because char-indexing a String internally is O(n) in rust (chars are utf8 -> have variable size)
-fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), TokenError> {
+fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), InterpretError> {
     use std::iter::FromIterator;
 
     if position > text.len() -1 {
@@ -77,12 +77,12 @@ fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), 
             Ok((Token::Number(number), right_bound))
         },
         '+' => Ok((Token::Add, position+1)),
-        _ =>  Err(TokenError::new("Unknown token encountered while parsing"))
+        _ =>  Err(InterpretError::TokenError("Unknown symbol encountered while parsing"))
     }
 
 }
 
-fn expr_pure(text: Vec<char>, position: usize) -> Result<usize, TokenError>{
+fn expr_pure(text: Vec<char>, position: usize) -> Result<usize, InterpretError>{
     let left;
     let right;
 
@@ -91,7 +91,7 @@ fn expr_pure(text: Vec<char>, position: usize) -> Result<usize, TokenError>{
     match next_token_pure(&text, position) {
         Ok((token, pos)) => match token {
             Token::Number(x) => { left = x; position = pos; },
-            _ => { return Err(TokenError::new(format!("Unexpected Token: expected 1st number at position {}", pos))); },
+            _ => { return Err(InterpretError::SyntaxError(format!("Unexpected Token: expected 1st number at position {}", pos))); },
         },
         Err(e) => { return Err(e)} ,
     }
@@ -99,7 +99,7 @@ fn expr_pure(text: Vec<char>, position: usize) -> Result<usize, TokenError>{
     match next_token_pure(&text, position) {
         Ok((token, pos)) => match token{
             Token::Add => { position = pos; }
-            _ => { return Err(TokenError::new(format!("Unexpected Token: expected '+' at position {}", pos))); },
+            _ => { return Err(InterpretError::SyntaxError(format!("Unexpected Token: expected '+' at position {}", pos))); },
         },
         Err(e) => { return Err(e); },
     }
@@ -109,7 +109,7 @@ fn expr_pure(text: Vec<char>, position: usize) -> Result<usize, TokenError>{
             Token::Number(x) => { right = x;
                 //position = pos;
             },
-            _ => { return Err(TokenError::new(format!("Unexpected Token: expected 2nd number at position {}", pos))); }
+            _ => { return Err(InterpretError::SyntaxError(format!("Unexpected Token: expected 2nd number at position {}", pos))); }
         },
         Err(e) => { return Err(e); },
     }
@@ -174,7 +174,7 @@ impl SimpleInterpreter {
         }
     }
 
-    fn expr(&mut self) -> Result<u32, TokenError> {
+    fn expr(&mut self) -> Result<u32, InterpretError> {
         let mut left = 0;
         let mut right = 0;
 
@@ -182,7 +182,7 @@ impl SimpleInterpreter {
         if let Some(token) = self.get_next_token(){
             match token {
                 Token::Number(x) => { left = x; },
-                _ => { return Err(TokenError::new("Unexpected Token")) },
+                _ => { return Err(InterpretError::SyntaxError("Unexpected Token")) },
             }
         }
 
@@ -192,7 +192,7 @@ impl SimpleInterpreter {
             match token {
                 Token::Number(x) => { left = x;},
                 Token::Add => {break 'a;},
-                _ => { return Err(TokenError::new("Unexpected Token")) }
+                _ => { return Err(InterpretError::SyntaxError("Unexpected Token")) }
             }
         }
 
@@ -200,7 +200,7 @@ impl SimpleInterpreter {
             match token {
                 Token::Number(x) => { right = x;},
                 Token::EOF => { break 'b;},
-                _ => { return Err(TokenError::new("Unexpected Token")) }
+                _ => { return Err(InterpretError::SyntaxError("Unexpected Token")) }
             }
         }
 
