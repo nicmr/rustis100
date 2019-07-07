@@ -31,30 +31,9 @@ fn main() {
 #[derive(Copy, Clone, Debug)]
 enum Token {
     Number(u32),
-    // Port(TisPort),
-    // Operator(TisOps),
     Add,
     EOF,
 }
-
-
-
-
-// Problem:
-// std::mem::discriminate doesn't work with nested enums
-//
-// #[derive(Copy, Clone, Debug)]
-// enum TisOps {
-//     Add,
-// }
-
-
-
-
-
-
-
-
 
 // purely functional approach
 // takes Vec<char> instead of String because char-indexing a String internally is O(n) in rust (chars are utf8 -> have variable size)
@@ -121,7 +100,7 @@ fn expr_pure(text: Vec<char>, position: usize) -> Result<usize, InterpretError>{
 
 
 
-// procedural / stateful approach
+// previous, bad stateful approach
 struct SimpleInterpreter {
     text: Vec<char>,
     pos: usize,
