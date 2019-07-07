@@ -1,5 +1,5 @@
 mod errors;
-// mod tis100;
+mod tis100;
 
 use errors::{InterpretError};
 
@@ -19,13 +19,12 @@ fn main() {
     }
 
 
-    // let sequence = tis100::sample_code();
-    // println!("Sequence is: {}", sequence);
-    // let mut interp = tis100::TisInterpreter::new(sequence);
-    // match interp.expr() {
-    //     Ok(result) => println!("result is {}", result),
-    //     Err(e) => println!("Err is: {}", e)
-    // }
+    let sequence = tis100::sample_code();
+    println!("TIS Sequence is: {}", sequence);
+    match tis100::expr_pure(sequence.chars().collect(), 0) {
+        Ok(result) => println!("result is {}", result),
+        Err(e) => println!("Err is: {}", e)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
