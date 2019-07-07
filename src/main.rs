@@ -1,5 +1,5 @@
 mod token_error;
-mod tis100;
+// mod tis100;
 
 use token_error::{TokenError};
 
@@ -7,11 +7,25 @@ use token_error::{TokenError};
 fn main() {
     let sequence = "14+21";
     println!("Sequence is: {}", sequence);
-    let mut interp = SimpleInterpreter::new(sequence);
-    match interp.expr() {
+    // let mut interp = SimpleInterpreter::new(sequence);
+    // match interp.expr() {
+    //     Ok(result) => println!("result is {}", result),
+    //     Err(e) => println!("Err is {}", e)
+    // }
+
+    match expr_pure(sequence.chars().collect(), 0) {
         Ok(result) => println!("result is {}", result),
-        Err(e) => println!("Err is {}", e)
+        Err(e) => println!("Failed with Err {}", e),
     }
+
+
+    // let sequence = tis100::sample_code();
+    // println!("Sequence is: {}", sequence);
+    // let mut interp = tis100::TisInterpreter::new(sequence);
+    // match interp.expr() {
+    //     Ok(result) => println!("result is {}", result),
+    //     Err(e) => println!("Err is: {}", e)
+    // }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -24,15 +38,6 @@ enum Token {
 }
 
 
-// #[derive(Copy, Clone, Debug)]
-// enum TisPort{
-//     Up,
-//     Down,
-//     Left,
-//     Right,
-//     Any,
-//     Nil,
-// }
 
 
 // Problem:
@@ -44,11 +49,84 @@ enum Token {
 // }
 
 
+
+
+
+
+
+
+
+// purely functional approach
+// takes Vec<char> instead of String because char-indexing a String internally is O(n) in rust (chars are utf8 -> have variable size)
+fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), TokenError> {
+    use std::iter::FromIterator;
+
+    if position > text.len() -1 {
+        return Ok((Token::EOF, position));
+    }
+
+    let current_char = text[position];
+    match current_char {
+        _ if current_char.is_digit(10) => {
+            let mut right_bound = position + 1;
+            while right_bound < text.len() && text[right_bound].is_digit(10) {
+                right_bound += 1;
+            }
+            let s = String::from_iter(text[position..right_bound].iter());
+            let number = s.parse::<u32>().unwrap();
+            Ok((Token::Number(number), right_bound))
+        },
+        '+' => Ok((Token::Add, position+1)),
+        _ =>  Err(TokenError::new("Unknown token encountered while parsing"))
+    }
+
+}
+
+fn expr_pure(text: Vec<char>, position: usize) -> Result<usize, TokenError>{
+    let left;
+    let right;
+
+    let mut position = position;
+
+    match next_token_pure(&text, position) {
+        Ok((token, pos)) => match token {
+            Token::Number(x) => { left = x; position = pos; },
+            _ => { return Err(TokenError::new(format!("Unexpected Token: expected 1st number at position {}", pos))); },
+        },
+        Err(e) => { return Err(e)} ,
+    }
+
+    match next_token_pure(&text, position) {
+        Ok((token, pos)) => match token{
+            Token::Add => { position = pos; }
+            _ => { return Err(TokenError::new(format!("Unexpected Token: expected '+' at position {}", pos))); },
+        },
+        Err(e) => { return Err(e); },
+    }
+
+    match next_token_pure(&text, position) {
+        Ok((token, pos)) => match token {
+            Token::Number(x) => { right = x;
+                //position = pos;
+            },
+            _ => { return Err(TokenError::new(format!("Unexpected Token: expected 2nd number at position {}", pos))); }
+        },
+        Err(e) => { return Err(e); },
+    }
+
+    Ok((left+right) as usize)
+}
+
+
+
+
+
 // procedural / stateful approach
 struct SimpleInterpreter {
     text: Vec<char>,
     pos: usize,
 }
+
 
 impl SimpleInterpreter {
     fn new<S: std::string::ToString>(text: S) -> SimpleInterpreter{
@@ -106,7 +184,6 @@ impl SimpleInterpreter {
                 Token::Number(x) => { left = x; },
                 _ => { return Err(TokenError::new("Unexpected Token")) },
             }
-            
         }
 
         // 2nd to nth token may be number until an operator appears
@@ -135,8 +212,3 @@ impl SimpleInterpreter {
 
 
 
-
-// // purely functional approach
-// fn interpret(text: String, position: usize){
-
-// }
