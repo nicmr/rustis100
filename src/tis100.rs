@@ -97,7 +97,7 @@ pub fn tick_all_n(mut nodes: Vec<Node>, ticks: usize) -> Vec<Node> {
 pub fn tick_n(state: &NodeState, instructions: &Vec<Instruction>, ticks: usize) -> NodeState {
     let program_length = instructions.len();
     if program_length == 0 {
-        return state.clone();
+        return *state;
     }
     let mut new_state = *state;
     for tick in 0..ticks {
