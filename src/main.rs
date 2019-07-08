@@ -21,10 +21,13 @@ fn main() {
 
     let sequence = tis100::sample_code();
     println!("TIS Sequence is: {}", sequence);
-    match tis100::expr_pure(sequence.chars().collect(), 0) {
-        Ok(result) => println!("result nodes are {:?}", result),
-        Err(e) => println!("Err is: {}", e)
-    }
+    let nodes = tis100::expr_pure(sequence.chars().collect(), 0).expect("error while parsing sequence");
+    println!("Starting state {:?}", nodes );
+    
+    let ticks = 9;
+    let nodes = tis100::tick_all_n(nodes, ticks);
+    println!("State after {} ticks: {:?}", ticks, nodes );
+
 }
 
 #[derive(Copy, Clone, Debug)]

@@ -99,11 +99,11 @@ pub fn tick_n(state: &NodeState, instructions: &Vec<Instruction>, ticks: usize) 
     if program_length == 0 {
         return state.clone();
     }
-    let mut new_state = NodeState::new();
+    let mut new_state = *state;
     for tick in 0..ticks {
         match instructions[tick % program_length] {
-            Instruction::Add(x) => {new_state.acc =  state.acc + x},
-            Instruction::Sub(x) => {new_state.acc = state.acc - x},
+            Instruction::Add(x) => {new_state.acc += x},
+            Instruction::Sub(x) => {new_state.acc -= x},
             Instruction::Nop => {
                 // literally no operation
             },
