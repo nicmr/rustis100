@@ -22,7 +22,7 @@ fn main() {
     let sequence = tis100::sample_code();
     println!("TIS Sequence is: {}", sequence);
     match tis100::expr_pure(sequence.chars().collect(), 0) {
-        Ok(result) => println!("result is {}", result),
+        Ok(result) => println!("result nodes are {:?}", result),
         Err(e) => println!("Err is: {}", e)
     }
 }
@@ -55,7 +55,7 @@ fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), 
             Ok((Token::Number(number), right_bound))
         },
         '+' => Ok((Token::Add, position+1)),
-        _ =>  Err(InterpretError::TokenError("Unknown symbol encountered while parsing"))
+        _ =>  Err(InterpretError::token_error("Unknown symbol encountered while parsing"))
     }
 
 }
@@ -69,7 +69,7 @@ fn expr_pure(text: Vec<char>, position: usize) -> Result<usize, InterpretError>{
     match next_token_pure(&text, position) {
         Ok((token, pos)) => match token {
             Token::Number(x) => { left = x; position = pos; },
-            _ => { return Err(InterpretError::SyntaxError(format!("Unexpected Token: expected 1st number at position {}", pos))); },
+            _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected 1st number at position {}", pos))); },
         },
         Err(e) => { return Err(e)} ,
     }
@@ -77,7 +77,7 @@ fn expr_pure(text: Vec<char>, position: usize) -> Result<usize, InterpretError>{
     match next_token_pure(&text, position) {
         Ok((token, pos)) => match token{
             Token::Add => { position = pos; }
-            _ => { return Err(InterpretError::SyntaxError(format!("Unexpected Token: expected '+' at position {}", pos))); },
+            _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected '+' at position {}", pos))); },
         },
         Err(e) => { return Err(e); },
     }
@@ -87,7 +87,7 @@ fn expr_pure(text: Vec<char>, position: usize) -> Result<usize, InterpretError>{
             Token::Number(x) => { right = x;
                 //position = pos;
             },
-            _ => { return Err(InterpretError::SyntaxError(format!("Unexpected Token: expected 2nd number at position {}", pos))); }
+            _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected 2nd number at position {}", pos))); }
         },
         Err(e) => { return Err(e); },
     }
@@ -160,7 +160,7 @@ impl SimpleInterpreter {
         if let Some(token) = self.get_next_token(){
             match token {
                 Token::Number(x) => { left = x; },
-                _ => { return Err(InterpretError::SyntaxError("Unexpected Token")) },
+                _ => { return Err(InterpretError::syntax_error("Unexpected Token")) },
             }
         }
 
@@ -170,7 +170,7 @@ impl SimpleInterpreter {
             match token {
                 Token::Number(x) => { left = x;},
                 Token::Add => {break 'a;},
-                _ => { return Err(InterpretError::SyntaxError("Unexpected Token")) }
+                _ => { return Err(InterpretError::syntax_error("Unexpected Token")) }
             }
         }
 
@@ -178,7 +178,7 @@ impl SimpleInterpreter {
             match token {
                 Token::Number(x) => { right = x;},
                 Token::EOF => { break 'b;},
-                _ => { return Err(InterpretError::SyntaxError("Unexpected Token")) }
+                _ => { return Err(InterpretError::syntax_error("Unexpected Token")) }
             }
         }
 

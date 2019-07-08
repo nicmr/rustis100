@@ -8,13 +8,13 @@ pub struct InterpretError {
 }
 
 impl InterpretError {
-    pub fn TokenError<S: std::string::ToString>(message: S) -> Self{
+    pub fn token_error<S: std::string::ToString>(message: S) -> Self{
         InterpretError {
             message: message.to_string(),
             kind: InterpretErrorKind::TokenError,
         }
     }
-    pub fn SyntaxError<S: std::string::ToString>(message: S) -> Self{
+    pub fn syntax_error<S: std::string::ToString>(message: S) -> Self{
         InterpretError {
             message: message.to_string(),
             kind: InterpretErrorKind::SyntaxError,
