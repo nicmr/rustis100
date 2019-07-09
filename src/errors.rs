@@ -26,7 +26,7 @@ impl Display for InterpretError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
             InterpretErrorKind::TokenError => write!(f, "TokenError: {}", self.message),
-            InterpretErrorKind::SyntaxError => write!(f, "SyntaxError: {}", self.message)
+            InterpretErrorKind::SyntaxError => write!(f, "SyntaxError: {}", self.message),
         }
     }
 }
