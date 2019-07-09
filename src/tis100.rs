@@ -1,7 +1,7 @@
 use crate::errors::{InterpretError};
 
 pub fn sample_code() -> String {
-    String::from("@0ADD4")
+    String::from("@0ADD4ADD2@1ADD1")
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -167,69 +167,110 @@ fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), 
     }
 }
 
+// TODO: introduce a new token variant operator with an associated enum operatorKind,
+// to avoid having to match each pattern in the next_token call match
+// TODO: match on operator variant to for loop requried times over getting expected operands.
 pub fn expr_pure(text: Vec<char>, position: usize) -> Result<Vec<Node>, InterpretError> {
     // currently only one operand needed add only add is supported
     // let left;
-    let right;
 
 
     // TODO: change limits for max node count, possibly enforce max node count in token parser
     let mut nodes = vec![Node::new(); 4];
-    let current_id;
-    let operator_token;
-
     let mut position = position;
+    let mut current_id = None;
 
-    match next_token_pure(&text, position) {
-        Ok((token, pos)) => match token {
-            Token::NodeID(id) => {
-                position = pos;
-                current_id = id;
-            },
-            _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected NodeID at position {}", pos))); },
+    'parse: loop {
+        let operand;
+        let mut operator_token = None;
+
+        // expect: node ID
+        match next_token_pure(&text, position) {
+            Ok((token, pos)) => match token {
+                Token::NodeID(id) => {
+                    position = pos;
+                    current_id = Some(id);
+                },
+                Token::Add => {
+                    match current_id {
+                        Some(_) => {
+                            position = pos; // compiler warns value is never read before being overwritten, but that must be false?
+                            operator_token = Some(Token::Add);
+                        }
+                        None => {
+                            return Err(InterpretError::syntax_error(format!("Unexpected Token: Operator without preceding NodeID at position {}", pos)));
+                        }
+                    }
+                    position = pos;
+
+                }
+                _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected NodeID at position {}", pos))); },
+            
+                },
+            Err(e) => { return Err(e)} ,
+        }
         
-        },
-        Err(e) => { return Err(e)} ,
-    }
-    match next_token_pure(&text, position) {
-        Ok((token, pos)) => match token {
+        // expect: operator if operator wasn't first token
+        if let None = operator_token {
+            match next_token_pure(&text, position) {
+                Ok((token, pos)) => match token {
+                    Token::Add => {
+                        position = pos;
+                        operator_token = Some(Token::Add);
+                    },
+                    _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected Operator at position {}", pos))); },
+                },
+                Err(e) => { return Err(e)} ,
+            }
+        }
+        
+
+
+        // not yet implemented: multiple operands
+        // match next_token_pure(&text, position) {
+        //     Ok((token, pos)) => match token{
+        //         Token::Number => { left = x; position = pos; }
+        //         _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected 1st operand at position {}", pos))); },
+        //     },
+        //     Err(e) => { return Err(e); },
+        // }
+
+
+        // expect: operand
+        match next_token_pure(&text, position) {
+            Ok((token, pos)) => match token {
+                Token::Number(x) => { operand = x;
+                    position = pos;
+                },
+                _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected operand at position {}", pos))); }
+            },
+            Err(e) => { return Err(e); },
+            
+        }
+
+        let instruction;
+
+        match operator_token
+        .expect("Reached a point of code where an operator should've always be set but isn't. This is a bug.") {
             Token::Add => {
-                position = pos;
-                operator_token = Token::Add;
+                instruction = Instruction::Add(operand);
             },
-            _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected Operator at position {}", pos))); },
-        },
-        Err(e) => { return Err(e)} ,
-    }
-
-    // match next_token_pure(&text, position) {
-    //     Ok((token, pos)) => match token{
-    //         Token::Number => { left = x; position = pos; }
-    //         _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected 1st operand at position {}", pos))); },
-    //     },
-    //     Err(e) => { return Err(e); },
-    // }
-
-    match next_token_pure(&text, position) {
-        Ok((token, pos)) => match token {
-            Token::Number(x) => { right = x;
-                //position = pos; //currently not needed as its the last part of expression
+            _ => {
+                instruction = Instruction::Nop;
             },
-            _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected operand at position {}", pos))); }
-        },
-        Err(e) => { return Err(e); },
-    }
+        }
 
-    let instruction;
-    match operator_token {
-        Token::Add => {
-            instruction = Instruction::Add(right);
-        },
-        _ => {
-            instruction = Instruction::Nop;
-        },
-    }
-    nodes[current_id as usize].instructions.push(instruction);
+        nodes[current_id.expect("Reached a point of code where a NodeID should always be set but isn't. This is a bug.") as usize]
+            .instructions.push(instruction);
 
+        // check if EOF reached
+        match next_token_pure(&text, position) {
+            Ok((token, _)) => match token {
+                Token::EOF => { break 'parse},
+                _ => { }
+            },
+            Err(e) => { return Err(e); },
+        }
+    }
     Ok(nodes)
 }

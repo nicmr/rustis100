@@ -102,93 +102,93 @@ fn expr_pure(text: Vec<char>, position: usize) -> Result<usize, InterpretError>{
 
 
 
-// previous, bad stateful approach
-struct SimpleInterpreter {
-    text: Vec<char>,
-    pos: usize,
-}
+// // previous, bad, stateful approach. Kept for comparison.
+// struct SimpleInterpreter {
+//     text: Vec<char>,
+//     pos: usize,
+// }
 
 
-impl SimpleInterpreter {
-    fn new<S: std::string::ToString>(text: S) -> SimpleInterpreter{
-        return SimpleInterpreter{
-            text: text.to_string().chars().collect(),
-            pos: 0,
-        }
-    }
+// impl SimpleInterpreter {
+//     fn new<S: std::string::ToString>(text: S) -> SimpleInterpreter{
+//         return SimpleInterpreter{
+//             text: text.to_string().chars().collect(),
+//             pos: 0,
+//         }
+//     }
 
-    fn get_next_token(&mut self) -> Option<Token> {
-        use std::iter::FromIterator;
+//     fn get_next_token(&mut self) -> Option<Token> {
+//         use std::iter::FromIterator;
 
-        // end of input reached
-        if self.pos > self.text.len() -1 {
-            return Some(Token::EOF);
-        }
+//         // end of input reached
+//         if self.pos > self.text.len() -1 {
+//             return Some(Token::EOF);
+//         }
 
-        let current_char = self.text[self.pos];
-        // println!("first char is: {}", current_char);
+//         let current_char = self.text[self.pos];
+//         // println!("first char is: {}", current_char);
         
 
-        if current_char.is_digit(10) {
+//         if current_char.is_digit(10) {
             
-            let mut length = 1;
-            while self.pos + length < self.text.len() && self.text[self.pos + length].is_digit(10) {
-                length += 1
-            }
-            let s = String::from_iter(self.text[self.pos..(self.pos+length)].iter());
-            // println!("finished token is {}", s);
-            let number = s.parse::<u32>().unwrap();
-            self.pos += length;
-            Some(Token::Number(number))
+//             let mut length = 1;
+//             while self.pos + length < self.text.len() && self.text[self.pos + length].is_digit(10) {
+//                 length += 1
+//             }
+//             let s = String::from_iter(self.text[self.pos..(self.pos+length)].iter());
+//             // println!("finished token is {}", s);
+//             let number = s.parse::<u32>().unwrap();
+//             self.pos += length;
+//             Some(Token::Number(number))
 
-        } else if current_char == '+' {
-            // addition operator
-            // println!("=> identified as +");
+//         } else if current_char == '+' {
+//             // addition operator
+//             // println!("=> identified as +");
 
-            self.pos += 1;
-            Some(Token::Add)
-        } else {
-            // unknown input
-            // println!("=> couldn't identify :(");
-            self.pos += 1;
-            None
-        }
-    }
+//             self.pos += 1;
+//             Some(Token::Add)
+//         } else {
+//             // unknown input
+//             // println!("=> couldn't identify :(");
+//             self.pos += 1;
+//             None
+//         }
+//     }
 
-    fn expr(&mut self) -> Result<u32, InterpretError> {
-        let mut left = 0;
-        let mut right = 0;
+//     fn expr(&mut self) -> Result<u32, InterpretError> {
+//         let mut left = 0;
+//         let mut right = 0;
 
-        // 1st token has to be number
-        if let Some(token) = self.get_next_token(){
-            match token {
-                Token::Number(x) => { left = x; },
-                _ => { return Err(InterpretError::syntax_error("Unexpected Token")) },
-            }
-        }
+//         // 1st token has to be number
+//         if let Some(token) = self.get_next_token(){
+//             match token {
+//                 Token::Number(x) => { left = x; },
+//                 _ => { return Err(InterpretError::syntax_error("Unexpected Token")) },
+//             }
+//         }
 
-        // 2nd to nth token may be number until an operator appears
-        // Operator will break loop
-        'a: while let Some(token) = self.get_next_token(){
-            match token {
-                Token::Number(x) => { left = x;},
-                Token::Add => {break 'a;},
-                _ => { return Err(InterpretError::syntax_error("Unexpected Token")) }
-            }
-        }
+//         // 2nd to nth token may be number until an operator appears
+//         // Operator will break loop
+//         'a: while let Some(token) = self.get_next_token(){
+//             match token {
+//                 Token::Number(x) => { left = x;},
+//                 Token::Add => {break 'a;},
+//                 _ => { return Err(InterpretError::syntax_error("Unexpected Token")) }
+//             }
+//         }
 
-        'b: while let Some(token) = self.get_next_token() {
-            match token {
-                Token::Number(x) => { right = x;},
-                Token::EOF => { break 'b;},
-                _ => { return Err(InterpretError::syntax_error("Unexpected Token")) }
-            }
-        }
+//         'b: while let Some(token) = self.get_next_token() {
+//             match token {
+//                 Token::Number(x) => { right = x;},
+//                 Token::EOF => { break 'b;},
+//                 _ => { return Err(InterpretError::syntax_error("Unexpected Token")) }
+//             }
+//         }
 
-        println!("left: {}, right: {}", left, right);
-        Ok(left + right)
-    }
-}
+//         println!("left: {}, right: {}", left, right);
+//         Ok(left + right)
+//     }
+// }
 
 
 
