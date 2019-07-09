@@ -1,7 +1,7 @@
 use crate::errors::{InterpretError};
 
 pub fn sample_code() -> String {
-    String::from("@0ADD4ADD2@1ADD1")
+    String::from("@0ADD4 ADD2 @1 ADD1")
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -22,14 +22,6 @@ enum Token {
     // Jlz,
     // Jro,
 }
-
-
-// IDEA:
-// Don't pass functions for the single instructions, becuase that requires a lot of dyn and Box Code
-// Instead, store Instructions as Enums with operands and their parameters as associated values.
-// Can we achieve an implementation without internal state and mut refs?s
-
-// Goal for now: single node running basic code.
 
 // Issue: instructions can not be mutated by instructions. So instructions should not be parted of mutable data of TisNode.
 // Instead, it may be better to rename the current TisNode type to NodeState, and compose a new type TisNode that contains both
@@ -117,6 +109,8 @@ pub fn tick_n(state: &NodeState, instructions: &Vec<Instruction>, ticks: usize) 
 fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), InterpretError> {
     use std::iter::FromIterator;
 
+    // remove all whitespace
+    let text: Vec<char> = text.clone().into_iter().filter(|&x| x != ' ').collect();
 
     if position > text.len() - 1 {
         return Ok((Token::EOF, position))
