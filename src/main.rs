@@ -20,13 +20,19 @@ fn main() {
 
 
     let sequence = tis100::sample_code();
-    println!("TIS Sequence is: {}", sequence);
+    println!("TIS Sequence is:\n{}", sequence);
     let nodes = tis100::expr_pure(sequence.chars().collect(), 0).expect("error while parsing sequence");
-    println!("Starting state {:?}", nodes );
-    
+    println!("Starting state:");
+    for (i, node) in nodes.iter().enumerate()  {
+        println!("Node {}: {:?}", i, node);
+    }
+
     let ticks = 9;
     let nodes = tis100::tick_all_n(nodes, ticks);
-    println!("State after {} ticks: {:?}", ticks, nodes );
+    println!("State after {} ticks:", ticks);
+    for (i, node) in nodes.iter().enumerate()  {
+        println!("Node {}: {:?}", i, node);
+    }
 
 }
 

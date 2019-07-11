@@ -1,7 +1,12 @@
 use crate::errors::{InterpretError};
 
 pub fn sample_code() -> String {
-    String::from("@0ADD4 ADD2 @1 ADD1")
+    String::from(
+r#"@0
+ADD4ADD2
+
+@1 ADD1
+"#)
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -109,15 +114,15 @@ pub fn tick_n(state: &NodeState, instructions: &Vec<Instruction>, ticks: usize) 
 fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), InterpretError> {
     use std::iter::FromIterator;
 
-    // remove all whitespace
-    let text: Vec<char> = text.clone().into_iter().filter(|&x| x != ' ').collect();
+    // remove all whitespace characters and commas
+    let text: Vec<char> = text.clone().into_iter().filter(|&x| !(x == ' ' || x == '\n' || x == '\t' || x == ',')).collect();
 
     if position > text.len() - 1 {
         return Ok((Token::EOF, position))
     }
 
     let current_char = text[position];
-    println!("current_char: {}", current_char);
+    // println!("current_char: {}", current_char);
     match current_char {
         '@' => {
             let mut right_bound = position+1;
@@ -188,15 +193,13 @@ pub fn expr_pure(text: Vec<char>, position: usize) -> Result<Vec<Node>, Interpre
                 Token::Add => {
                     match current_id {
                         Some(_) => {
-                            position = pos; // compiler warns value is never read before being overwritten, but that must be false?
+                            position = pos;
                             operator_token = Some(Token::Add);
                         }
                         None => {
                             return Err(InterpretError::syntax_error(format!("Unexpected Token: Operator without preceding NodeID at position {}", pos)));
                         }
                     }
-                    position = pos;
-
                 }
                 _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected NodeID at position {}", pos))); },
             
