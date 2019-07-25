@@ -1,4 +1,13 @@
 use crate::errors::{InterpretError};
+use std::collections::HashMap;
+use regex::Regex;
+use lazy_static;
+
+pub mod emu;
+
+// TODO: split emulator code into emu submodule
+// mod emu;
+
 
 pub fn sample_code() -> String {
     String::from(
@@ -82,40 +91,9 @@ pub enum Instruction {
     // Jro,
 }
 
-pub fn tick_all_n(mut nodes: Vec<Node>, ticks: usize) -> Vec<Node> {
-    for node in &mut nodes {
-        let new_state = tick_n(&node.state, &node.instructions, ticks);
-        node.state = new_state;
-    }
-    nodes
-}
-
-
-pub fn tick_n(state: &NodeState, instructions: &Vec<Instruction>, ticks: usize) -> NodeState {
-    let program_length = instructions.len();
-    if program_length == 0 {
-        return *state;
-    }
-    let mut new_state = *state;
-    for tick in 0..ticks {
-        match instructions[tick % program_length] {
-            Instruction::Add(x) => {new_state.acc += x},
-            Instruction::Sub(x) => {new_state.acc -= x},
-            Instruction::Nop => {
-                // literally no operation
-            },
-        }
-    }
-    new_state
-}
-
-
 
 fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), InterpretError> {
     use std::iter::FromIterator;
-
-    // remove all whitespace characters and commas
-    let text: Vec<char> = text.clone().into_iter().filter(|&x| !(x == ' ' || x == '\n' || x == '\t' || x == ',')).collect();
 
     if position > text.len() - 1 {
         return Ok((Token::EOF, position))
@@ -169,86 +147,71 @@ fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), 
 // TODO: introduce a new token variant operator with an associated enum operatorKind,
 // to avoid having to match each pattern in the next_token call match
 // TODO: match on operator variant to for loop requried times over getting expected operands.
-pub fn expr_pure(text: Vec<char>, position: usize) -> Result<Vec<Node>, InterpretError> {
-    // currently only one operand needed add only add is supported
-    // let left;
+// TODO: add support in jumpmark parser for lines with only jumpmarks
+fn parse_node(node_text: String) -> Result<Node, InterpretError> {
+    
+    // text.find
+    let mut node = Node::new();
+    let mut jumpmarks: HashMap<String, usize> = HashMap::new();
 
 
-    // TODO: change limits for max node count, possibly enforce max node count in token parser
-    let mut nodes = vec![Node::new(); 4];
-    let mut position = position;
-    let mut current_id = None;
+    lazy_static::lazy_static! {
+        static ref RE_JUMPMARK: Regex = Regex::new(r"\w+:").unwrap();
+    }
 
-    'parse: loop {
+    let text: Vec<Vec<char>> = node_text
+    .lines()
+    .enumerate()
+    .filter_map(|(line_index, line)| {
+        if let Some(mat) = RE_JUMPMARK.find(line) {
+            jumpmarks.insert(line[..mat.end()].to_string(), line_index);
+            if mat.end() < line.len() {
+               Some(&line[mat.end()+1..])
+            } else {
+                None
+            }
+        } else {
+            Some(&line)
+        }
+    })
+    .map(|line| line.chars().collect::<Vec<char>>())
+    .collect();
+
+
+    let instruction_result: Result<Vec<Instruction>, _> = text
+    .iter()
+    .map(|text| {
+        let mut position = 0;
+
+        let operator_token;
         let operand;
-        let mut operator_token = None;
+        let instruction;
 
-        // expect: node ID
+        // expect: operator
         match next_token_pure(&text, position) {
             Ok((token, pos)) => match token {
-                Token::NodeID(id) => {
-                    position = pos;
-                    current_id = Some(id);
-                },
                 Token::Add => {
-                    match current_id {
-                        Some(_) => {
-                            position = pos;
-                            operator_token = Some(Token::Add);
-                        }
-                        None => {
-                            return Err(InterpretError::syntax_error(format!("Unexpected Token: Operator without preceding NodeID at position {}", pos)));
-                        }
-                    }
-                }
-                _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected NodeID at position {}", pos))); },
-            
+                    position = pos;
+                    operator_token = Token::Add;
                 },
+                _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected NodeID at position {}", pos))); },
+            },
             Err(e) => { return Err(e)} ,
         }
-        
-        // expect: operator if operator wasn't first token
-        if let None = operator_token {
-            match next_token_pure(&text, position) {
-                Ok((token, pos)) => match token {
-                    Token::Add => {
-                        position = pos;
-                        operator_token = Some(Token::Add);
-                    },
-                    _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected Operator at position {}", pos))); },
-                },
-                Err(e) => { return Err(e)} ,
-            }
-        }
-        
-
-
-        // not yet implemented: multiple operands
-        // match next_token_pure(&text, position) {
-        //     Ok((token, pos)) => match token{
-        //         Token::Number => { left = x; position = pos; }
-        //         _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected 1st operand at position {}", pos))); },
-        //     },
-        //     Err(e) => { return Err(e); },
-        // }
-
 
         // expect: operand
         match next_token_pure(&text, position) {
             Ok((token, pos)) => match token {
                 Token::Number(x) => { operand = x;
-                    position = pos;
+                    // position reassignment currently not needed, as no other tokenizer step occurs after this point
+                    // position = pos;
                 },
                 _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected operand at position {}", pos))); }
             },
             Err(e) => { return Err(e); },
-            
         }
 
-        let instruction;
-
-        match operator_token
-        .expect("Reached a point of code where an operator should've always be set but isn't. This is a bug.") {
+        match operator_token {
             Token::Add => {
                 instruction = Instruction::Add(operand);
             },
@@ -256,18 +219,36 @@ pub fn expr_pure(text: Vec<char>, position: usize) -> Result<Vec<Node>, Interpre
                 instruction = Instruction::Nop;
             },
         }
+        Ok(instruction)
+    })
+    .collect();
 
-        nodes[current_id.expect("Reached a point of code where a NodeID should always be set but isn't. This is a bug.") as usize]
-            .instructions.push(instruction);
-
-        // check if EOF reached
-        match next_token_pure(&text, position) {
-            Ok((token, _)) => match token {
-                Token::EOF => { break 'parse},
-                _ => { }
-            },
-            Err(e) => { return Err(e); },
+    match instruction_result {
+        Ok(instructions) => {
+            node.instructions = instructions;
+            Ok(node)
         }
+        Err(e) => Err(e)
     }
-    Ok(nodes)
+}
+
+pub fn parse(text: String) -> Result<Vec<Node>, InterpretError>{
+
+    // remove spaces, tabs and commas :  they are syntactically irrelevant and make parsing more difficult
+    let body: String = text.chars().filter(|&x| !(x == ' ' || x == '\t' || x == ',')).collect();
+
+    // To do: support multi_digit node ids
+    lazy_static::lazy_static! {
+        static ref RE_NODES: Regex = Regex::new(r"@(\d)").unwrap();
+    }
+
+    let nodes: Result<Vec<Node>, InterpretError> = body
+        .split("@")
+        .into_iter()
+        // TODO: currently we are discarding the id (at the 0th index), let's put it to use instead
+        .map(|text| &text[1..])
+        .map(|text| parse_node(text.to_owned()))
+        .collect();
+    
+    nodes
 }
