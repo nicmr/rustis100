@@ -10,8 +10,7 @@ enum Token {
     Number(u32),
     NodeID(u32),
     EOF,
-    Op(Operator)
-    
+    Op(Operator, usize)
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -19,9 +18,9 @@ enum Operator {
     Add,
     Sub,
     // Mov,
-    // Nop,
-    // Swp,
-    // Sav,
+    Nop,
+    Swp,
+    Sav,
     // Neg,
     // Jmp,
     // Jez,
@@ -95,47 +94,44 @@ fn parse_node(node_text: String) -> Result<Node, InterpretError> {
             let mut position = 0;
 
             let operator;
-            let operand;
+            let operand_count;
             let instruction;
 
             // expect: operator
             match next_token(&text, position) {
                 Ok((token, pos)) => match token {
-                    // Token::Add => {
-                    //     position = pos;
-                    //     operator_token = token;
-                    // },
-                    // Token::Sub => {
-                    //     position = pos;
-                    //     operator_token = token;
-                    // }
-                    Token::Op(op) => {
+                    Token::Op(op, opcount) => {
                         position = pos;
                         operator = op;
+                        operand_count = opcount
                     }
                     _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected Operator at position {}.\nGot {:?} instead.", pos, token))); },
                 },
                 Err(e) => { return Err(e)} ,
             }
 
-            // expect: operand
-            match next_token(&text, position) {
-                Ok((token, pos)) => match token {
-                    Token::Number(x) => { operand = x;
-                        // position reassignment currently not needed, as no other tokenizer step occurs after this point
-                        // position = pos;
+            let mut operands = Vec::with_capacity(operand_count);
+
+            for _ in 0..operand_count {
+                // expect: operand
+                match next_token(&text, position) {
+                    Ok((token, pos)) => match token {
+                        Token::Number(x) => {
+                            operands.push(x);
+                            position = pos;
+                        },
+                        _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected operand at position {}", pos))); }
                     },
-                    _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected operand at position {}", pos))); }
-                },
-                Err(e) => { return Err(e); },
+                    Err(e) => { return Err(e); },
+                }
             }
 
             match operator {
                 Operator::Add => {
-                    instruction = Instruction::Add(operand);
+                    instruction = Instruction::Add(operands[0]);
                 },
                 Operator::Sub => {
-                    instruction = Instruction::Sub(operand);
+                    instruction = Instruction::Sub(operands[0]);
                 }
                 _ => {
                     instruction = Instruction::Nop;
@@ -166,26 +162,31 @@ fn next_token(text: &Vec<char>, position: usize) -> Result<(Token, usize), Inter
     let current_char = text[position];
     // println!("current_char: {}", current_char);
     match current_char {
-        '@' => {
-            let mut right_bound = position+1;
-            while right_bound < text.len() && text[right_bound].is_digit(10) {
-                right_bound += 1;
-            }
-            if right_bound == position +1 {
-                Err(InterpretError::token_error("Numeric node ID missing after '@'"))
-            } else {
-                // take only the ID, '@' identifier is not required
-                let s = String::from_iter(text[(position+1)..right_bound].iter());
-                let id = s.parse::<u32>().unwrap();
-                Ok((Token::NodeID(id), right_bound))
-            }
-        },
+        // to be deleted, node id is now parsed before code reaches this functions
+        // '@' => {
+        //     let mut right_bound = position+1;
+        //     while right_bound < text.len() && text[right_bound].is_digit(10) {
+        //         right_bound += 1;
+        //     }
+        //     if right_bound == position +1 {
+        //         Err(InterpretError::token_error("Numeric node ID missing after '@'"))
+        //     } else {
+        //         // take only the ID, '@' identifier is not required
+        //         let s = String::from_iter(text[(position+1)..right_bound].iter());
+        //         let id = s.parse::<u32>().unwrap();
+        //         Ok((Token::NodeID(id), right_bound))
+        //     }
+        // },
         'A' => {
-            want(text, position, 'A', 'D', 'D', Operator::Add)
+            want(text, position, 'A', 'D', 'D', Operator::Add, 1)
         },
         'S' => {
-            want(text, position, 'S', 'U', 'B', Operator::Sub)
-        }
+            want(text, position, 'S', 'U', 'B', Operator::Sub, 1)
+        },
+        'N' => {
+            want(text, position, 'N', 'O', 'P', Operator::Nop, 0)
+        },
+        
         _ if current_char.is_digit(10) => {
             let mut right_bound = position + 1;
             while right_bound < text.len() && text[right_bound].is_digit(10) {
@@ -200,10 +201,10 @@ fn next_token(text: &Vec<char>, position: usize) -> Result<(Token, usize), Inter
 }
 
 // To do: take any number of give and wanted characters
-fn want(text: &Vec<char>, position: usize, given: char, a: char, b: char, op: Operator) -> Result<(Token, usize), InterpretError> {
+fn want(text: &Vec<char>, position: usize, given: char, a: char, b: char, op: Operator, operand_count: usize) -> Result<(Token, usize), InterpretError> {
     if position < text.len()-1 {
         if text[position+1] == a && text[position+2] == b {
-            Ok((Token::Op(op), position + 3))
+            Ok((Token::Op(op, operand_count), position + 3))
         } else {
             Err(InterpretError::token_error(
                 format!("Unkown Token encountered: '{}{}{}'.", given, text[position+1], text[position+2])

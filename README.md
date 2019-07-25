@@ -25,7 +25,7 @@ Generally, the work rustis-100 does under the hood can be split into three diffe
 1. Parse all instructions
 1. Emulating a TIS-100 and running the instructions
 
-Let's take a closer look at how we can efficiently perform these tasks.
+Let's take a closer look at how we can perform these tasks more efficiently by parallelizing our code.
 
 
 ## Parsing
