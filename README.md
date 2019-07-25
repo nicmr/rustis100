@@ -1,6 +1,6 @@
 # Rustis-100
 
-A TIS-100 parses and emulator written in rust.
+A TIS-100 parser and emulator written in rust.
 
 TIS-100 is a fictive highly parallel computer architecture and instruction set by Zachtronics, LLC, featured in their identically titled game.
 If this project sparks your interest, please [consider buying the game](https://www.gog.com/game/tis100).
@@ -12,6 +12,11 @@ The official architecture and instruction set are property of Zachtronics LLC.
 Please have a look at the manual on their website:
 [TIS-100 Manual](http://www.zachtronics.com/images/TIS-100P%20Reference%20Manual.pdf)
 
+## Usage
+```zsh
+git clone https://github.com/nicmr/rustis100
+cargo run
+```
 
 ## Concept
 
