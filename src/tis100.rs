@@ -11,8 +11,7 @@ pub mod emu;
 
 pub fn sample_code() -> String {
     String::from(
-r#"@0
-ADD4ADD2
+r#"@0 ADD4ADD2
 
 @1 ADD1
 "#)
@@ -95,7 +94,7 @@ pub enum Instruction {
 fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), InterpretError> {
     use std::iter::FromIterator;
 
-    if position > text.len() - 1 {
+    if position + 1 > text.len() {
         return Ok((Token::EOF, position))
     }
 
@@ -149,6 +148,7 @@ fn next_token_pure(text: &Vec<char>, position: usize) -> Result<(Token, usize), 
 // TODO: match on operator variant to for loop requried times over getting expected operands.
 // TODO: add support in jumpmark parser for lines with only jumpmarks
 fn parse_node(node_text: String) -> Result<Node, InterpretError> {
+    println!("parse node called with the following parameter: '{}'", node_text);
     
     // text.find
     let mut node = Node::new();
@@ -160,76 +160,77 @@ fn parse_node(node_text: String) -> Result<Node, InterpretError> {
     }
 
     let text: Vec<Vec<char>> = node_text
-    .lines()
-    .enumerate()
-    .filter_map(|(line_index, line)| {
-        if let Some(mat) = RE_JUMPMARK.find(line) {
-            jumpmarks.insert(line[..mat.end()].to_string(), line_index);
-            if mat.end() < line.len() {
-               Some(&line[mat.end()+1..])
+        .lines()
+        .filter(|line| line.len() > 0)
+        .enumerate()
+        .filter_map(|(line_index, line)| {
+            if let Some(mat) = RE_JUMPMARK.find(line) {
+                jumpmarks.insert(line[..mat.end()].to_string(), line_index);
+                if mat.end() < line.len() {
+                Some(&line[mat.end()+1..])
+                } else {
+                    None
+                }
             } else {
-                None
+                Some(&line)
             }
-        } else {
-            Some(&line)
-        }
-    })
-    .map(|line| line.chars().collect::<Vec<char>>())
-    .collect();
+        })
+        .map(|line| line.chars().collect::<Vec<char>>())
+        .collect();
 
 
     let instruction_result: Result<Vec<Instruction>, _> = text
-    .iter()
-    .map(|text| {
-        let mut position = 0;
+        .iter()
+        .map(|text| {
+            let mut position = 0;
 
-        let operator_token;
-        let operand;
-        let instruction;
+            let operator_token;
+            let operand;
+            let instruction;
 
-        // expect: operator
-        match next_token_pure(&text, position) {
-            Ok((token, pos)) => match token {
+            // expect: operator
+            match next_token_pure(&text, position) {
+                Ok((token, pos)) => match token {
+                    Token::Add => {
+                        position = pos;
+                        operator_token = Token::Add;
+                    },
+                    _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected Operator at position {}.\nGot {:?} instead.", pos, token))); },
+                },
+                Err(e) => { return Err(e)} ,
+            }
+
+            // expect: operand
+            match next_token_pure(&text, position) {
+                Ok((token, pos)) => match token {
+                    Token::Number(x) => { operand = x;
+                        // position reassignment currently not needed, as no other tokenizer step occurs after this point
+                        // position = pos;
+                    },
+                    _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected operand at position {}", pos))); }
+                },
+                Err(e) => { return Err(e); },
+            }
+
+            match operator_token {
                 Token::Add => {
-                    position = pos;
-                    operator_token = Token::Add;
+                    instruction = Instruction::Add(operand);
                 },
-                _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected NodeID at position {}", pos))); },
-            },
-            Err(e) => { return Err(e)} ,
-        }
-
-        // expect: operand
-        match next_token_pure(&text, position) {
-            Ok((token, pos)) => match token {
-                Token::Number(x) => { operand = x;
-                    // position reassignment currently not needed, as no other tokenizer step occurs after this point
-                    // position = pos;
+                _ => {
+                    instruction = Instruction::Nop;
                 },
-                _ => { return Err(InterpretError::syntax_error(format!("Unexpected Token: expected operand at position {}", pos))); }
-            },
-            Err(e) => { return Err(e); },
-        }
+            }
+            Ok(instruction)
+        })
+        .collect();
 
-        match operator_token {
-            Token::Add => {
-                instruction = Instruction::Add(operand);
-            },
-            _ => {
-                instruction = Instruction::Nop;
-            },
+        match instruction_result {
+            Ok(instructions) => {
+                node.instructions = instructions;
+                Ok(node)
+            }
+            Err(e) => Err(e)
         }
-        Ok(instruction)
-    })
-    .collect();
-
-    match instruction_result {
-        Ok(instructions) => {
-            node.instructions = instructions;
-            Ok(node)
-        }
-        Err(e) => Err(e)
-    }
 }
 
 pub fn parse(text: String) -> Result<Vec<Node>, InterpretError>{
@@ -245,6 +246,7 @@ pub fn parse(text: String) -> Result<Vec<Node>, InterpretError>{
     let nodes: Result<Vec<Node>, InterpretError> = body
         .split("@")
         .into_iter()
+        .filter(|text| text.len() > 0)
         // TODO: currently we are discarding the id (at the 0th index), let's put it to use instead
         .map(|text| &text[1..])
         .map(|text| parse_node(text.to_owned()))
