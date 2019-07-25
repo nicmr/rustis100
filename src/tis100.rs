@@ -12,6 +12,7 @@ r#"@0 ADD4ADD2
 "#)
 }
 
+/// Node represents a single node in the TIS-100 architecture
 #[derive(Debug, Clone)]
 pub struct Node {
     state: NodeState,
@@ -27,6 +28,8 @@ impl Node {
     }
 }
 
+/// NodeState represents the state of a TIS-100 note.
+/// It will usually be initialized when starting the emulator and be mutated with each emulator tick.
 #[derive(Debug, Clone, Copy)]
 pub struct NodeState {
     pub acc: u32,
@@ -43,7 +46,9 @@ impl NodeState {
     }
 }
 
-
+/// Instruction represents a single instruction a Node computes each tick.
+/// An instruction includes its operands as associated values where required.
+/// Instructions will usually be created during parsing and not be mutated at emulator runtime.
 #[derive(Debug, Clone, Copy)]
 pub enum Instruction {
     Add(u32),

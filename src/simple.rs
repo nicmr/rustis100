@@ -1,4 +1,6 @@
 // A simple addition parser in rust, created before getting into tis100 specifics
+// Feel free to ignore the contents of this file
+
 use errors::{InterpretError};
 
 #[derive(Copy, Clone, Debug)]
