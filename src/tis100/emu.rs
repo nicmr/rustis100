@@ -19,6 +19,9 @@ pub fn tick_n(state: &NodeState, instructions: &Vec<Instruction>, ticks: usize) 
         match instructions[tick % program_length] {
             Instruction::Add(x) => {new_state.acc += x},
             Instruction::Sub(x) => {new_state.acc -= x},
+            Instruction::Sav => {new_state.bak = state.acc}
+            Instruction::Swp => {new_state.bak = state.acc; new_state.acc = state.bak}
+            // Instruction::Neg => { new_state.acc -=}
             Instruction::Nop => {
                 // literally no operation
             },

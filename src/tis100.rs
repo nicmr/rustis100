@@ -56,9 +56,9 @@ pub enum Instruction {
     // To be implemented:
     // Mov,
     Nop,
-    // Swp,
-    // Sav,
-    // Neg,
+    Swp,
+    Sav,
+    // Neg, // nodestate needs to be switched for i32 to make this work
     // Jmp,
     // Jez,
     // Jnz,
