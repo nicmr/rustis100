@@ -32,8 +32,8 @@ impl Node {
 /// It will usually be initialized when starting the emulator and be mutated with each emulator tick.
 #[derive(Debug, Clone, Copy)]
 pub struct NodeState {
-    pub acc: u32,
-    pub bak: u32,
+    pub acc: i32,
+    pub bak: i32,
     // pub ip: usize, //the instruction pointer / program counter //superfluous?
 }
 
@@ -51,14 +51,14 @@ impl NodeState {
 /// Instructions will usually be created during parsing and not be mutated at emulator runtime.
 #[derive(Debug, Clone, Copy)]
 pub enum Instruction {
-    Add(u32),
-    Sub(u32),
+    Add(i32),
+    Sub(i32),
     // To be implemented:
     // Mov,
     Nop,
     Swp,
     Sav,
-    // Neg, // nodestate needs to be switched for i32 to make this work
+    Neg,
     // Jmp,
     // Jez,
     // Jnz,

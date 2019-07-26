@@ -7,8 +7,8 @@ use crate::errors::{InterpretError};
 
 #[derive(Copy, Clone, Debug)]
 enum Token {
-    Number(u32),
-    NodeID(u32),
+    Number(i32),
+    NodeID(i32),
     EOF,
     Op(Operator, usize)
 }
@@ -192,7 +192,7 @@ fn next_token(text: &Vec<char>, position: usize) -> Result<(Token, usize), Inter
                 right_bound += 1;
             }
             let s = String::from_iter(text[position..right_bound].iter());
-            let number = s.parse::<u32>().unwrap();
+            let number = s.parse::<i32>().unwrap();
             Ok((Token::Number(number), right_bound))
         },
         _ if current_char.is_alphabetic() => {
