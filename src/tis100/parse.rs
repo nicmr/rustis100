@@ -8,7 +8,6 @@ use crate::errors::{InterpretError};
 #[derive(Copy, Clone, Debug)]
 enum Token {
     Number(i32),
-    NodeID(i32),
     EOF,
     Op(Operator, usize)
 }
@@ -57,9 +56,6 @@ pub fn parse(text: String) -> Result<Vec<Node>, InterpretError>{
     nodes
 }
 
-// TODO: introduce a new token variant operator with an associated enum operatorKind,
-// to avoid having to match each pattern in the next_token call match
-// TODO: match on operator variant to for loop requried times over getting expected operands.
 // TODO: add support in jumpmark parser for lines with only jumpmarks
 fn parse_node(node_text: String) -> Result<Node, InterpretError> {
     println!("parse node called with the following parameter: '{}'", node_text);
@@ -137,7 +133,13 @@ fn parse_node(node_text: String) -> Result<Node, InterpretError> {
                 },
                 Operator::Sub => {
                     instruction = Instruction::Sub(operands[0]);
-                }
+                },
+                Operator::Sav => {
+                    instruction = Instruction::Sav;
+                },
+                Operator::Swp => {
+                    instruction = Instruction::Swp;
+                },
                 _ => {
                     instruction = Instruction::Nop;
                 },
@@ -146,13 +148,13 @@ fn parse_node(node_text: String) -> Result<Node, InterpretError> {
         })
         .collect();
 
-        match instruction_result {
-            Ok(instructions) => {
-                node.instructions = instructions;
-                Ok(node)
-            }
-            Err(e) => Err(e)
+    match instruction_result {
+        Ok(instructions) => {
+            node.instructions = instructions;
+            Ok(node)
         }
+        Err(e) => Err(e)
+    }
 }
 
 lazy_static::lazy_static! {

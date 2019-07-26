@@ -6,9 +6,12 @@ pub use parse::parse;
 
 pub fn sample_code() -> String {
     String::from(
-r#"@0 ADD4ADD2
+r#"@0 ADD4
+SAV
+NEG
 
 @1 ADD1
+SAV
 "#)
 }
 
