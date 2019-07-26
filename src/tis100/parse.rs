@@ -15,18 +15,23 @@ enum Token {
 
 #[derive(Copy, Clone, Debug)]
 enum Operator {
+    // Arithmetic
     Add,
     Sub,
-    // Mov,
-    Nop,
+    Neg,
+    // Channels and registers
+    Mov,
     Swp,
     Sav,
-    // Neg,
-    // Jmp,
-    // Jez,
-    // Jnz,
-    // Jlz,
-    // Jro,
+    // Jump instructions
+    Jmp,
+    Jez,
+    Jnz,
+    Jgz,
+    Jlz,
+    Jro,
+    // No operation
+    Nop,
 }
 
 /// Parses a string of rustis 100 node declarations and instructions into a Vector of `Node`
@@ -150,7 +155,25 @@ fn parse_node(node_text: String) -> Result<Node, InterpretError> {
         }
 }
 
-
+lazy_static::lazy_static! {
+    static ref OPMAP: HashMap<String, (Operator, usize)> = {
+        let mut m = HashMap::with_capacity(13);
+        m.insert("ADD".to_owned(), (Operator::Add, 1));
+        m.insert("SUB".to_owned(), (Operator::Sub, 1));
+        m.insert("NOP".to_owned(), (Operator::Nop, 0));
+        m.insert("SAV".to_owned(), (Operator::Sav, 0));
+        m.insert("SWP".to_owned(), (Operator::Swp, 0));
+        m.insert("NEG".to_owned(), (Operator::Neg, 0));
+        m.insert("JMP".to_owned(), (Operator::Jmp, 1));
+        m.insert("JRO".to_owned(), (Operator::Jro, 1));
+        m.insert("JEZ".to_owned(), (Operator::Jez, 1));
+        m.insert("JNZ".to_owned(), (Operator::Jnz, 1));
+        m.insert("JGZ".to_owned(), (Operator::Jgz, 1));
+        m.insert("JLZ".to_owned(), (Operator::Jlz, 1));
+        m.insert("MOV".to_owned(), (Operator::Mov, 2));
+        m
+    };
+}
 
 fn next_token(text: &Vec<char>, position: usize) -> Result<(Token, usize), InterpretError> {
     use std::iter::FromIterator;
@@ -160,33 +183,9 @@ fn next_token(text: &Vec<char>, position: usize) -> Result<(Token, usize), Inter
     }
 
     let current_char = text[position];
-    // println!("current_char: {}", current_char);
+    // println!("current_char: {}", current_char)
+
     match current_char {
-        // to be deleted, node id is now parsed before code reaches this functions
-        // '@' => {
-        //     let mut right_bound = position+1;
-        //     while right_bound < text.len() && text[right_bound].is_digit(10) {
-        //         right_bound += 1;
-        //     }
-        //     if right_bound == position +1 {
-        //         Err(InterpretError::token_error("Numeric node ID missing after '@'"))
-        //     } else {
-        //         // take only the ID, '@' identifier is not required
-        //         let s = String::from_iter(text[(position+1)..right_bound].iter());
-        //         let id = s.parse::<u32>().unwrap();
-        //         Ok((Token::NodeID(id), right_bound))
-        //     }
-        // },
-        'A' => {
-            want(text, position, 'A', 'D', 'D', Operator::Add, 1)
-        },
-        'S' => {
-            want(text, position, 'S', 'U', 'B', Operator::Sub, 1)
-        },
-        'N' => {
-            want(text, position, 'N', 'O', 'P', Operator::Nop, 0)
-        },
-        
         _ if current_char.is_digit(10) => {
             let mut right_bound = position + 1;
             while right_bound < text.len() && text[right_bound].is_digit(10) {
@@ -196,22 +195,19 @@ fn next_token(text: &Vec<char>, position: usize) -> Result<(Token, usize), Inter
             let number = s.parse::<u32>().unwrap();
             Ok((Token::Number(number), right_bound))
         },
-        _ =>  Err(InterpretError::token_error("Unknown symbol encountered while parsing"))
-    }
-}
-
-// To do: take any number of give and wanted characters
-fn want(text: &Vec<char>, position: usize, given: char, a: char, b: char, op: Operator, operand_count: usize) -> Result<(Token, usize), InterpretError> {
-    if position < text.len()-1 {
-        if text[position+1] == a && text[position+2] == b {
-            Ok((Token::Op(op, operand_count), position + 3))
-        } else {
-            Err(InterpretError::token_error(
-                format!("Unkown Token encountered: '{}{}{}'.", given, text[position+1], text[position+2])
-            ))
+        _ if current_char.is_alphabetic() => {
+            if position < text.len()-1 {
+                let s = text[position..position+3].iter().collect::<String>();
+                if let Some((op, op_count)) = OPMAP.get(&s){
+                    Ok((Token::Op(*op, *op_count), position + 3))
+                } else {
+                    Err(InterpretError::token_error(format!("Unknown token encountered while parsing: '{}'", s)))
+                }
+            } else {
+                // TODO: improve this error message
+                Err(InterpretError::token_error(format!("Token too short: {}", current_char)))
+            }
         }
-    } else {
-        // TODO: implement alternative suggestion as feature of the Error type :)
-        Err(InterpretError::token_error("Unkown Token encountered: 'S'. Did you mean: 'SUB'?"))
+        _ =>  Err(InterpretError::token_error(format!("Unknown symbol encountered while parsing: {}", current_char)))
     }
 }
