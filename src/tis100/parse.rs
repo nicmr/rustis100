@@ -128,18 +128,18 @@ fn parse_node(node_text: String) -> Result<Node, InterpretError> {
             }
 
             match operator {
-                Operator::Add => {
-                    instruction = Instruction::Add(operands[0]);
-                },
-                Operator::Sub => {
-                    instruction = Instruction::Sub(operands[0]);
-                },
-                Operator::Sav => {
-                    instruction = Instruction::Sav;
-                },
-                Operator::Swp => {
-                    instruction = Instruction::Swp;
-                },
+                Operator::Add => { instruction = Instruction::Add(operands[0]); },
+                Operator::Sub => { instruction = Instruction::Sub(operands[0]); },
+                Operator::Sav => { instruction = Instruction::Sav; },
+                Operator::Swp => { instruction = Instruction::Swp; },
+                Operator::Neg => { instruction = Instruction::Neg; },
+                Operator::Jmp => { instruction = Instruction::Jmp; },
+                Operator::Jro => { instruction = Instruction::Jro; },
+                Operator::Jez => { instruction = Instruction::Jez; },
+                Operator::Jnz => { instruction = Instruction::Jnz; },
+                Operator::Jgz => { instruction = Instruction::Jgz; },
+                Operator::Jlz => { instruction = Instruction::Jlz; },
+                Operator::Mov => { instruction = Instruction::Mov; },
                 _ => {
                     instruction = Instruction::Nop;
                 },

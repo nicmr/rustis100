@@ -11,7 +11,7 @@ fn main() {
         println!("Node {}: {:?}", i, node);
     }
 
-    let ticks = 9;
+    let ticks = 3;
     let nodes = tis100::emu::tick_all_n(nodes, ticks);
     println!("State after {} ticks:", ticks);
     for (i, node) in nodes.iter().enumerate()  {

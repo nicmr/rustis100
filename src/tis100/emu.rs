@@ -25,6 +25,9 @@ pub fn tick_n(state: &NodeState, instructions: &Vec<Instruction>, ticks: usize) 
             Instruction::Nop => {
                 // literally no operation
             },
+            _ => {
+                panic!("Instruction not yet supported by emu.rs: {:?}", instructions[tick % program_length])
+            }
         }
     }
     new_state
